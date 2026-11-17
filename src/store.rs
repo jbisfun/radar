@@ -165,11 +165,12 @@ impl Store {
         Ok(path)
     }
 
-    /// Writes `docs/NNNN.md` per report and `docs/index.md`, removing pages of deleted reports.
+    /// Writes `docs/NNNN.md` per open report and `docs/index.md`, removing pages of
+    /// closed and deleted reports.
     pub fn export(&self) -> anyhow::Result<PathBuf> {
         let docs = issues_dir(&self.root).join("docs");
         std::fs::create_dir_all(&docs)?;
-        let reports = self.list(true)?;
+        let reports = self.list(false)?;
         let mut written = BTreeSet::new();
         for report in &reports {
             let name = format!("{:04}.md", report.number);
@@ -270,34 +271,25 @@ fn report_page(report: &Report) -> anyhow::Result<String> {
 }
 
 fn index_page(reports: &[Report]) -> String {
-    let mut page = String::from("---\ntitle: \"Radar\"\n---\n\n# Radar\n\n");
-    for (heading, status) in [("Open", Status::Open), ("Closed", Status::Closed)] {
-        let matching: Vec<_> = reports
-            .iter()
-            .filter(|report| report.status == status)
-            .collect();
-        page += &format!("## {heading}\n\n");
-        if matching.is_empty() {
-            page += "None.\n\n";
-            continue;
-        }
-        page += "| # | Filed | Location | Note |\n| - | - | - | - |\n";
-        for report in matching {
-            let note = report
-                .note
-                .as_deref()
-                .and_then(|note| note.lines().next())
-                .unwrap_or("")
-                .replace('|', "\\|");
-            page += &format!(
-                "| [{}]({:04}.md) | {} | `{}` | {note} |\n",
-                report.number,
-                report.number,
-                filed_at(report),
-                location(report)
-            );
-        }
-        page += "\n";
+    let mut page = String::from("---\ntitle: \"Radar\"\n---\n\n# Radar\n\nOpen reports.\n\n");
+    if reports.is_empty() {
+        return page + "None.\n";
+    }
+    page += "| # | Filed | Location | Note |\n| - | - | - | - |\n";
+    for report in reports {
+        let note = report
+            .note
+            .as_deref()
+            .and_then(|note| note.lines().next())
+            .unwrap_or("")
+            .replace('|', "\\|");
+        page += &format!(
+            "| [{}]({:04}.md) | {} | `{}` | {note} |\n",
+            report.number,
+            report.number,
+            filed_at(report),
+            location(report)
+        );
     }
     page
 }
