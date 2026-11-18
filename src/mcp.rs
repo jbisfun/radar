@@ -1,12 +1,10 @@
 //! `radar mcp`: an MCP server (stdio) over the store, for agents.
 //!
-//! One long-running process holds the PoloDB database for the session instead of a new
-//! `radar` invocation opening (and locking) it per call; don't also run `radar` CLI
-//! commands against the same workspace while this is attached.
+//! The database is opened for each tool call and closed again, so the CLI (the pull
+//! precommit `radar export`, ycode-radar) can use it while an agent is attached.
 
 use std::fmt::Write as _;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use rmcp::{
     ServerHandler, ServiceExt,
@@ -51,16 +49,20 @@ struct NumberArgs {
 
 #[derive(Clone)]
 pub struct RadarMcp {
-    store: Arc<Store>,
+    root: PathBuf,
     tool_router: ToolRouter<Self>,
 }
 
 impl RadarMcp {
-    fn new(store: Arc<Store>) -> Self {
+    fn new(root: PathBuf) -> Self {
         Self {
-            store,
+            root,
             tool_router: Self::tool_router(),
         }
+    }
+
+    fn store(&self) -> Result<Store, String> {
+        Store::open(&self.root).map_err(err)
     }
 }
 
@@ -69,7 +71,7 @@ impl RadarMcp {
     #[tool(description = "File a report; the line text is read from the workspace.")]
     fn add(&self, Parameters(a): Parameters<AddArgs>) -> ToolResult {
         let report = self
-            .store
+            .store()?
             .add(NewReport {
                 repo: a.repo,
                 file: a.file,
@@ -88,7 +90,7 @@ impl RadarMcp {
 
     #[tool(description = "List reports (all: true also includes closed ones).")]
     fn list(&self, Parameters(a): Parameters<ListArgs>) -> ToolResult {
-        let reports = self.store.list(a.all).map_err(err)?;
+        let reports = self.store()?.list(a.all).map_err(err)?;
         let mut out = String::new();
         for report in &reports {
             let closed = if report.status == Status::Closed {
@@ -118,19 +120,19 @@ impl RadarMcp {
 
     #[tool(description = "Close a report.")]
     fn close(&self, Parameters(a): Parameters<NumberArgs>) -> ToolResult {
-        self.store.set_status(a.number, Status::Closed).map_err(err)?;
+        self.store()?.set_status(a.number, Status::Closed).map_err(err)?;
         Ok(format!("#{} closed", a.number))
     }
 
     #[tool(description = "Reopen a closed report.")]
     fn reopen(&self, Parameters(a): Parameters<NumberArgs>) -> ToolResult {
-        self.store.set_status(a.number, Status::Open).map_err(err)?;
+        self.store()?.set_status(a.number, Status::Open).map_err(err)?;
         Ok(format!("#{} reopened", a.number))
     }
 
     #[tool(description = "Delete a report.")]
     fn rm(&self, Parameters(a): Parameters<NumberArgs>) -> ToolResult {
-        self.store.remove(a.number).map_err(err)?;
+        self.store()?.remove(a.number).map_err(err)?;
         Ok(format!("#{} removed", a.number))
     }
 
@@ -138,7 +140,7 @@ impl RadarMcp {
         description = "Write issues/docs/NNNN.md and issues/docs/index.md for open reports; returns the docs directory."
     )]
     fn export(&self) -> ToolResult {
-        let docs = self.store.export().map_err(err)?;
+        let docs = self.store()?.export().map_err(err)?;
         Ok(docs.display().to_string())
     }
 }
@@ -158,12 +160,13 @@ impl ServerHandler for RadarMcp {
 
 /// Serve MCP on stdin/stdout until the client disconnects.
 pub fn serve(root: PathBuf) -> anyhow::Result<()> {
-    let store = Arc::new(Store::open(&root)?);
+    // Fail early if the database can't be opened at all.
+    drop(Store::open(&root)?);
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;
     rt.block_on(async move {
-        let service = RadarMcp::new(store)
+        let service = RadarMcp::new(root)
             .serve(rmcp::transport::stdio())
             .await?;
         service.waiting().await?;

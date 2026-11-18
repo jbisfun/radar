@@ -12,11 +12,11 @@ radar mcp [--root DIR]   # MCP server (stdio): add/list/close/reopen/rm/export
 
 The workspace root is `$PULL_ROOT`, or the nearest directory above the current one that contains `pullfile.plist`.
 
-Only one process may hold `radar.db` open at a time. The CLI commands above are
-short-lived and fine to interleave; `radar mcp` holds the database open for as long as
-an agent is attached, so don't run the CLI against the same workspace while it's up
-(`pull`'s own `mcp_servers` pullfile section registers it alongside `pull mcp` in
-editors/agents that read `pull mcp-servers`, e.g. ycode-pull).
+Only one process can have `radar.db` open at a time, so every command opens it for a
+single operation and waits briefly if another one has it. That includes `radar mcp`,
+which opens it per tool call, so the CLI keeps working while an agent is attached. The
+pullfile's `mcp_servers` section registers `radar mcp` alongside `pull mcp` in editors
+and agents that read `pull mcp-servers`, such as ycode-pull.
 
 - **Pull:** the precommit hook runs `radar export` and stages `issues/radar.db`. `issues/docs` is gitignored, and the wiki publishes it under `issues`.
 - **Wiki:** select text on a docs page and right-click. The "Add to Radar" menu copies the matching `radar add …` command, with the repo, file, source line and your selection already filled in.

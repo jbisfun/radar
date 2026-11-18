@@ -67,12 +67,23 @@ pub fn issues_dir(root: &Path) -> PathBuf {
 impl Store {
     pub fn open(root: &Path) -> anyhow::Result<Self> {
         let path = issues_dir(root).join("radar.db");
-        let db = Database::open_path(&path).with_context(|| {
-            format!(
-                "opening {} (another radar process holds it)",
-                path.display()
-            )
-        })?;
+        // Only one process can have the database open; every user (CLI, `radar mcp`)
+        // holds it for a single operation, so wait a little for the lock.
+        let mut tries = 0;
+        let db = loop {
+            match Database::open_path(&path) {
+                Ok(db) => break db,
+                Err(_) if tries < 50 => {
+                    tries += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+                Err(e) => {
+                    return Err(e).with_context(|| {
+                        format!("opening {} (another radar process holds it)", path.display())
+                    });
+                }
+            }
+        };
         Ok(Self {
             root: root.to_path_buf(),
             reports: db.collection("reports"),
