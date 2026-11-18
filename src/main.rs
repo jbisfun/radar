@@ -1,3 +1,5 @@
+#[cfg(feature = "mcp")]
+mod mcp;
 mod store;
 
 use std::path::{Path, PathBuf};
@@ -51,6 +53,13 @@ enum Command {
     },
     /// Write issues/docs/NNNN.md and issues/docs/index.md.
     Export,
+    #[cfg(feature = "mcp")]
+    /// MCP server on stdio for agents: add/list/close/reopen/rm/export.
+    Mcp {
+        /// Workspace root (default: found from the current directory).
+        #[arg(long)]
+        root: Option<PathBuf>,
+    },
 }
 
 /// `$PULL_ROOT`, else the nearest directory with a pullfile.plist.
@@ -67,6 +76,14 @@ fn workspace_root() -> anyhow::Result<PathBuf> {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    #[cfg(feature = "mcp")]
+    if let Command::Mcp { root } = &cli.command {
+        let root = match root {
+            Some(root) => root.clone(),
+            None => workspace_root()?,
+        };
+        return mcp::serve(root);
+    }
     let store = Store::open(&workspace_root()?)?;
     match cli.command {
         Command::Add {
@@ -120,6 +137,8 @@ fn main() -> anyhow::Result<()> {
         Command::Reopen { number } => store.set_status(number, Status::Open)?,
         Command::Rm { number } => store.remove(number)?,
         Command::Export => println!("{}", store.export()?.display()),
+        #[cfg(feature = "mcp")]
+        Command::Mcp { .. } => unreachable!(),
     }
     Ok(())
 }
