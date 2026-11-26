@@ -1,0 +1,38 @@
+/* radar's pages: the rules the shared theme (../theme/src/theme/assets/style.css) lacks,
+   written against its --wiki-* variables so dark mode follows. The excerpt card is
+   cpull's report card (cpull src/frontend/cpull/cpull.css, .cpull-code / .cpull-hit). */
+.radar-flag { color: #d08700; }
+[data-bs-theme="dark"] .radar-flag { color: #f0b429; }
+.radar-flag-closed { color: var(--bs-secondary-color); }
+.tool-heading .radar-flag, .tool-heading .radar-flag-closed { font-size: 1.1rem; }
+
+.radar-table td.radar-mark { width: 1%; }
+.radar-table td.radar-title { max-width: 32rem; }
+.radar-table .radar-text { color: var(--bs-secondary-color); font-size: 0.75rem; max-width: 32rem; }
+.radar-table tr.radar-closed .radar-title a { color: var(--bs-secondary-color); }
+code.radar-id { color: var(--bs-secondary-color); font-size: 0.75rem; }
+
+.badge.radar-badge-moved { background: #dbe8f8 !important; color: #1d4f91 !important; font-weight: 500; }
+[data-bs-theme="dark"] .badge.radar-badge-moved { background: #23364f !important; color: #a9c8f0 !important; }
+.badge.radar-badge-changed { background: #fde2c8 !important; color: #8a3b00 !important; font-weight: 500; }
+[data-bs-theme="dark"] .badge.radar-badge-changed { background: #4d2e12 !important; color: #f6c08f !important; }
+.badge.radar-badge-open { background: #fff1b8 !important; color: #6b4e00 !important; }
+[data-bs-theme="dark"] .badge.radar-badge-open { background: #4d4111 !important; color: #f6dc8a !important; }
+.badge.radar-badge-closed { background: var(--bs-secondary-bg) !important; color: var(--bs-secondary-color) !important; }
+
+.radar-code { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--bs-secondary-color) transparent; background: var(--wiki-code-bg); border: 1px solid var(--wiki-code-border); border-radius: 4px; }
+.card > .radar-code { border-width: 1px 0; border-radius: 0; }
+.radar-code table { border-collapse: collapse; width: 100%; font-family: var(--wiki-mono); font-size: 0.75rem; line-height: 1.45; }
+.radar-code td { padding: 0 0.6rem; vertical-align: top; }
+.radar-code .radar-num { width: 1%; text-align: right; color: var(--bs-secondary-color); user-select: none; border-right: 1px solid var(--wiki-code-border); white-space: nowrap; }
+.radar-code .radar-line { white-space: pre; }
+.radar-code tr.radar-hit { background: #fff1b8; }
+[data-bs-theme="dark"] .radar-code tr.radar-hit { background: #4d4111; }
+.radar-code tr.radar-hit .radar-num { color: var(--bs-body-color); font-weight: 600; box-shadow: inset 3px 0 0 #e0a100; }
+[data-bs-theme="dark"] .radar-code tr.radar-hit .radar-num { box-shadow: inset 3px 0 0 #f0b429; }
+.radar-report .card-footer code.radar-quote { white-space: pre-wrap; }
+.radar-note { white-space: pre-wrap; background: var(--wiki-note-bg, #fffbe6); border: 1px solid var(--wiki-note-border, #efe3a6); border-radius: 4px; padding: 0.75rem 1rem; }
+[data-bs-theme="dark"] .radar-note { background: #2d2a1c; border-color: #4a4426; }
+.radar-form { max-width: 52rem; margin-bottom: 1.5rem; }
+.wiki-content h2.radar-section { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bs-secondary-color); border: 0; margin: 1.5rem 0 0.5rem; padding: 0; }
+[data-bs-theme="dark"] .hl-comment { color: #8a97a3; }

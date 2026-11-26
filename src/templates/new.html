@@ -1,0 +1,27 @@
+{% extends "theme/layout.html" %}
+{% import "theme/macros.html" as ui %}
+{% block content %}
+{{ ui.heading("File a report", "", "flag") }}
+<p class="text-body-secondary">A report is a note about one line of code, filed as a cpull issue in the repo it points at. The line's text is read from the work tree (or at a commit, branch or tag, when given).</p>
+<form class="radar-form" method="post" action="/reports">
+  <div class="row g-2">
+    <div class="col-md-4 mb-3">
+      <label class="form-label" for="f-repo">Repo</label>
+      <select class="form-select" id="f-repo" name="repo" required>
+        {% for name in page.repos %}<option{% if name == page.form.repo %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">{{ ui.field("File", "file", page.form.file, "", false, true, true) }}</div>
+    <div class="col-md-2">{{ ui.field("Line", "line", page.form.line, "", false, true, true) }}</div>
+  </div>
+  {{ ui.field("Title", "title", page.form.title, "Defaults to the note's first line.") }}
+  {{ ui.textarea("Note", "note", page.form.note, 5, "What's wrong here, why, and the fix (markdown).") }}
+  <div class="row g-2">
+    <div class="col-md-6">{{ ui.field("Selected text", "quote", page.form.quote, "If narrower than the line.", false, true) }}</div>
+    <div class="col-md-3">{{ ui.field("Labels", "labels", page.form.labels, "Besides report.") }}</div>
+    <div class="col-md-3">{{ ui.field("At", "ref", page.form.ref, "A commit, branch or tag; default: the work tree.", false, true) }}</div>
+  </div>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-flag-fill"></i> File report</button>
+</form>
+{% endblock %}

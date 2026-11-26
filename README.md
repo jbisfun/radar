@@ -1,24 +1,51 @@
 # radar
 
-> Superseded by `cpull report` (line-anchored cpull issues; see cpull's docs/report.md). Move the reports over with `radar list --all --json > radar.json && pull cpull report migrate radar.json`.
+Line-anchored reports for a pull workspace. A report is a note about one line of code: the repo, the file, the line, that line's text, the narrower text selected (the quote) and where it was filed from. radar stores each report as a [cpull](https://github.com/jbisfun/cpull) issue in the repo it points at, labelled `report` and carrying an `anchor`. It files them through cpull's HTTP API, so they sync, merge and show in the forge like any other issue. radar reads the line's text when filing and finds the line again after the code moves.
 
-Reports for agents. Each report points at a line of code in the pull workspace and records the repo, the file, the line number, the line's text, an optional note, and when it was filed. The CLI is stateless: every run opens the PoloDB database at `<workspace>/issues/radar.db`, does its work and exits.
+It is one Zig program with a CLI, a small web UI with a JSON API, and an MCP server. The workspace's tool contract is [theme docs/workspace-tools.md](https://github.com/jbisfun/theme/blob/main/docs/workspace-tools.md) §7.
 
 ```sh
-radar add pull src/main.rs 42 --note "panics on an empty pullfile"   # the line text is read from the file
-radar list [--all] [--json]
-radar close 3 / radar reopen 3 / radar rm 3
-radar export        # issues/docs/NNNN.md per open report + issues/docs/index.md
-radar mcp [--root DIR]   # MCP server (stdio): add/list/close/reopen/rm/export
+radar pull src/main.zig 42 -q "unwrap()" -n "panics on an empty pullfile"   # = radar add ...
+radar list [--all] [--json]       # open reports, and where each line is now
+radar show ID [--json]            # one report and the code around it
+radar close ID / radar reopen ID  # ID: a report (issue) id, or a unique prefix
+radar migrate radar.json          # the old Rust radar's `radar list --all --json`
+radar serve [--listen 127.0.0.1:8746]
+radar mcp
 ```
 
-The workspace root is `$PULL_ROOT`, or the nearest directory above the current one that contains `pullfile.plist`.
+* REPO is a pullfile repo, or `.` for the workspace's events repo (pullfile `cpull.events`). FILE is relative to the repo. `-n`/`--note` becomes the issue description, and its first line becomes the title unless `--title` gives one. `--labels` adds labels to `report`. `--source` defaults to `cli`; ycode, the wiki and MCP set their own. `--ref REV` reads the line at a commit, branch or tag instead of the work tree.
+* The anchor records `commit` = HEAD when HEAD has the same text on that line. A line filed against uncommitted work has no commit.
+* Every command talks to cpull directly and needs the cpull job running. The address comes from `--addr`, else `$CPULL_ADDR`, else `.pull/cpull/serve.addr`, else `127.0.0.1:8080`. The workspace is `--root`, else `$PULL_ROOT`, else the nearest parent holding `pullfile.plist`.
+* `radar list --json` prints cpull's report objects plus `current_line` (the line in the work tree holding the filed text nearest the filed line, or null), `moved` and `changed`.
+* `radar migrate` files the reports of the old radar.db (the Rust radar's `radar list --all --json`; `-` reads stdin) with the `radar` label, keeping each one's status, note, quote and source. It finds the commit by walking the repo's history back to the filing time. A report that is already filed (same repo, file, line, text and note) is skipped, so the migration can run again. cpull stamps the issues with the time of the migration.
 
-Only one process can have `radar.db` open at a time, so every command opens it for a
-single operation and waits briefly if another one has it. That includes `radar mcp`,
-which opens it per tool call, so the CLI keeps working while an agent is attached. The
-pullfile's `mcp_servers` section registers `radar mcp` alongside `pull mcp` in editors
-and agents that read `pull mcp-servers`, such as ycode-pull.
+## Web UI and API
 
-- **Pull:** the precommit hook runs `radar export` and stages `issues/radar.db`. `issues/docs` is gitignored, and the wiki publishes it under `issues`.
-- **Wiki:** select text on a docs page and right-click. The "Add to Radar" menu copies the matching `radar add …` command, with the repo, file, source line and your selection already filled in.
+`radar serve` lists reports by status and repo, shows each report with its code (read at the commit it was filed against, highlighted), and has a form for filing one. The server writes `.pull/radar/serve.addr` while it runs, so the workspace's tool bar (Forge · CI · Wiki · Radar) links to it.
+
+```
+GET  /api/health
+GET  /api/reports?status=open|closed|all&repo=R&file=F   -> [RadarReport]
+GET  /api/reports/<id>                                   -> RadarReport + "excerpt"
+POST /api/reports        {repo, file, line, quote?, note?, title?, labels?, source?, ref?} -> 201 RadarReport
+POST /api/reports/<id>/close | /reopen                   -> RadarReport
+POST /api/relocate       {repo, file, line, line_text}   -> {line, changed}
+```
+
+A write whose `Origin` names another site is refused with 403. When cpull isn't running, the API answers 503 and the pages say so.
+
+## MCP
+
+`radar mcp` serves `radar_report`, `radar_reports`, `radar_report_show`, `radar_report_close` and `radar_report_reopen` on stdio. Register it in the pullfile's `mcp_servers` as `radar` with args `["mcp"]`.
+
+## Build
+
+Zig 0.17.1, with the workspace's [theme](https://github.com/jbisfun/theme) checkout beside this repo (`../theme`):
+
+```sh
+zig build test
+zig build -Doptimize=ReleaseSafe --prefix ~/.local
+```
+
+radar reads git through the `git` CLI.

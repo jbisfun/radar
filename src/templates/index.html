@@ -1,0 +1,35 @@
+{% extends "theme/layout.html" %}
+{% import "theme/macros.html" as ui %}
+{% import "radar/macros.html" as radar %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  {{ ui.heading(page.heading, "", "crosshair") }}
+  {% if page.connected %}<a class="btn btn-sm btn-primary ms-auto" href="{{ page.new_href }}"><i class="bi bi-flag-fill"></i> File a report</a>{% endif %}
+</div>
+{% if page.tabs %}
+{{ ui.tabs(page.tabs, "mb-3") }}
+{% if page.rows %}
+<div class="table-responsive">
+<table class="table table-sm table-hover align-middle radar-table">
+  <thead><tr><th></th><th>Report</th><th>Line</th><th>Filed</th><th>From</th></tr></thead>
+  <tbody>
+  {% for row in page.rows %}
+    <tr{% if row.closed %} class="radar-closed"{% endif %}>
+      <td class="radar-mark">{{ radar.flag(row.closed) }}</td>
+      <td class="radar-title">
+        <a class="fw-semibold" href="{{ row.href }}">{{ row.title }}</a> <code class="radar-id">{{ row.short }}</code>
+        <div class="radar-text font-monospace text-truncate" title="{{ row.line_text }}">{{ row.line_text }}</div>
+      </td>
+      <td class="text-nowrap"><span class="font-monospace small">{{ row.location }}</span> {{ radar.where(row) }}</td>
+      <td class="text-nowrap small">{{ ui.time(row.created) }}</td>
+      <td class="small text-body-secondary">{{ row.source }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{{ ui.empty(page.empty) }}
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+.{
+    .name = .radar,
+    .version = "0.2.0",
+    .fingerprint = 0x4b99fdde60d2ebc1,
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{
+        // the workspace's shared look, tool bar, discovery and highlighting
+        // (a pull workspace sibling: ~/jbisfun/theme)
+        .theme = .{ .path = "../theme" },
+        .clap = .{
+            .url = "git+https://github.com/Hejsil/zig-clap#05faf3905e8548f5cc269a8836e154065e70128d",
+            .hash = "clap-0.12.0-oBajB4XpAQCF1WRKnD5KOKPsnwwT_NNdAJ7Ww3irYJac",
+        },
+        .parley = .{
+            .url = "git+https://github.com/pedronaugusto/parley#3dffee3a0e074d6cfb5be647f5a4694c2fd9ad9d",
+            .hash = "parley-0.8.0-x3fwY1idCwCLQPMDQif0tjRyIbXpzYaMJ2l0mVuqHSUp",
+        },
+    },
+    .paths = .{ "build.zig", "build.zig.zon", "src", "README.md" },
+}

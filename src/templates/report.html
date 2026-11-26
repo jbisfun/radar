@@ -1,0 +1,47 @@
+{% extends "theme/layout.html" %}
+{% import "theme/macros.html" as ui %}
+{% import "radar/macros.html" as radar %}
+{% block content %}
+{% set row = page.row %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+  <h1 class="tool-heading mb-0">{{ radar.flag(row.closed) }}<span>{{ row.title }}</span></h1>
+  <form class="ms-auto" method="post" action="{{ page.action }}">
+    {% if row.closed %}
+    <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Reopen</button>
+    {% else %}
+    <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-check2-circle"></i> Close</button>
+    {% endif %}
+  </form>
+</div>
+<p class="text-body-secondary small mb-3">
+  <span class="badge {% if row.closed %}radar-badge-closed{% else %}radar-badge-open{% endif %}">{% if row.closed %}closed{% else %}open{% endif %}</span>
+  <code class="radar-id">{{ row.short }}</code> filed {{ ui.time(row.created) }}{% if page.author %} by {{ page.author }}{% endif %}{% if row.source %} from {{ row.source }}{% endif %}
+  {% if page.forge_href %} · <a href="{{ page.forge_href }}">issue in the Forge <i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+</p>
+
+<div class="card radar-report mb-3">
+  <div class="card-header d-flex flex-wrap align-items-center gap-2 small">
+    <i class="bi bi-crosshair text-body-secondary"></i>
+    <span class="font-monospace">{{ row.location }}</span> {{ radar.where(row) }}
+    {% if page.excerpt_commit %}<span class="text-body-secondary ms-auto">at <code>{{ page.excerpt_commit }}</code></span>{% endif %}
+  </div>
+  <div class="radar-code"><table><tbody>
+  {% if page.lines %}
+  {% for l in page.lines %}<tr{% if l.hit %} class="radar-hit"{% endif %}><td class="radar-num">{{ l.number }}</td><td class="radar-line">{{ l.html }}</td></tr>
+  {% endfor %}
+  {% else %}
+  <tr class="radar-hit"><td class="radar-num">{{ row.location }}</td><td class="radar-line">{{ row.line_text }}</td></tr>
+  {% endif %}
+  </tbody></table></div>
+  <div class="card-footer small text-body-secondary">
+    {% if page.quote %}<div class="mb-1">Selected: <code class="radar-quote">{{ page.quote }}</code></div>{% endif %}
+    {% if row.changed %}<div class="mb-1">Filed as: <code>{{ row.line_text }}</code></div>{% endif %}
+    {{ page.excerpt_note }}{% if page.where %} {{ page.where }}{% endif %}
+  </div>
+</div>
+
+{% if page.note %}
+<h2 class="radar-section">Note</h2>
+<div class="radar-note">{{ page.note }}</div>
+{% endif %}
+{% endblock %}

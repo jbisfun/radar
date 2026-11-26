@@ -1,0 +1,11 @@
+{#- radar's building blocks. -#}
+
+{#- A report's status mark: an open (amber) or closed (gray) flag. -#}
+{% macro flag(closed) -%}
+{% if closed %}<i class="bi bi-flag radar-flag-closed" title="closed"></i>{% else %}<i class="bi bi-flag-fill radar-flag" title="open"></i>{% endif %}
+{%- endmacro %}
+
+{#- Where a report's line is now: "now line N", "changed" or nothing. -#}
+{% macro where(row) -%}
+{% if row.changed %}<span class="badge radar-badge-changed" title="the filed text is no longer in the work tree's file">changed</span>{% elif row.now %}<span class="badge radar-badge-moved" title="the line moved in the work tree">{{ row.now }}</span>{% endif %}
+{%- endmacro %}
