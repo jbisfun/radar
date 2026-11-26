@@ -1,5 +1,7 @@
 # radar
 
+> Superseded by `cpull report` (line-anchored cpull issues; see cpull's docs/report.md). Move the reports over with `radar list --all --json > radar.json && pull cpull report migrate radar.json`.
+
 Reports for agents. Each report points at a line of code in the pull workspace and records the repo, the file, the line number, the line's text, an optional note, and when it was filed. The CLI is stateless: every run opens the PoloDB database at `<workspace>/issues/radar.db`, does its work and exits.
 
 ```sh
